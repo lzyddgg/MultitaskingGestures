@@ -47,7 +47,7 @@ jobs:
 
           include $(THEOS_MAKE_PATH)/tweak.mk
 
-          SUBPROJECTS += multitaskinggesturessettings
+          SUBPROJECTS += MultitaskingGesturesSettings
           include $(THEOS_MAKE_PATH)/aggregate.mk
           EOF
 
@@ -67,11 +67,6 @@ jobs:
 
           include $(THEOS_MAKE_PATH)/bundle.mk
           EOF
-
-          echo "----- root Makefile -----"
-          cat Makefile
-          echo "----- subproject Makefile -----"
-          cat MultitaskingGesturesSettings/Makefile
           
       - name: build
         run: |
