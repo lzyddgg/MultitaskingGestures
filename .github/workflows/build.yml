@@ -30,11 +30,49 @@ jobs:
 
       - name: patch for ios7 arm
         run: |
-          sed -i 's/^ARCHS *= *.*/ARCHS = armv7 armv7s/' Makefile
-          sed -i 's/^ARCHS *= *.*/ARCHS = armv7 armv7s/' MultitaskingGesturesSettings/Makefile
-          grep -q '^TARGET' Makefile || sed -i '1i TARGET = iphone:clang:7.0:7.0' Makefile
-          grep -q '^TARGET' MultitaskingGesturesSettings/Makefile || sed -i '1i TARGET = iphone:clang:7.0:7.0' MultitaskingGesturesSettings/Makefile
+          cat > Makefile <<'EOF'
+          TARGET = iphone:clang:7.0:7.0
+          ARCHS = armv7 armv7s
+          GO_EASY_ON_ME = 1
 
+          include $(THEOS)/makefiles/common.mk
+
+          TWEAK_NAME = MultitaskingGestures
+
+          MultitaskingGestures_FILES = GestureSupport.xm OffscreenSwipeRecognizers.xm MoveControlCenter.xm SwitchApp.xm SwipeUp.xm Preferences.m
+          MultitaskingGestures_FRAMEWORKS = Foundation UIKit CoreGraphics QuartzCore
+          MultitaskingGestures_PRIVATE_FRAMEWORKS = BackBoardServices
+          MultitaskingGestures_LDFLAGS += -lMobileGestalt
+          MultitaskingGestures_CFLAGS += -IHeaders
+
+          include $(THEOS_MAKE_PATH)/tweak.mk
+
+          SUBPROJECTS += multitaskinggesturessettings
+          include $(THEOS_MAKE_PATH)/aggregate.mk
+          EOF
+
+          cat > MultitaskingGesturesSettings/Makefile <<'EOF'
+          TARGET = iphone:clang:7.0:7.0
+          ARCHS = armv7 armv7s
+          GO_EASY_ON_ME = 1
+
+          include $(THEOS)/makefiles/common.mk
+
+          BUNDLE_NAME = MultitaskingGesturesSettings
+
+          MultitaskingGesturesSettings_FILES = MultitaskingGesturesSettings.mm
+          MultitaskingGesturesSettings_INSTALL_PATH = /Library/PreferenceBundles
+          MultitaskingGesturesSettings_FRAMEWORKS = Foundation UIKit
+          MultitaskingGesturesSettings_PRIVATE_FRAMEWORKS = Preferences
+
+          include $(THEOS_MAKE_PATH)/bundle.mk
+          EOF
+
+          echo "----- root Makefile -----"
+          cat Makefile
+          echo "----- subproject Makefile -----"
+          cat MultitaskingGesturesSettings/Makefile
+          
       - name: build
         run: |
           export THEOS="$HOME/theos"
