@@ -67,11 +67,81 @@ jobs:
 
           include $(THEOS_MAKE_PATH)/bundle.mk
           EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) BackBoardServices.h 补 Foundation
+          p = Path("Headers/BackBoardServices.h")
+          s = p.read_text()
+          if "#import <Foundation/Foundation.h>" not in s:
+              s = '#import <Foundation/Foundation.h>\n' + s
+          p.write_text(s)
+
+          # 2) OffscreenSwipeRecognizers.xm: initWithType:2 -> 强转
+          p = Path("OffscreenSwipeRecognizers.xm")
+          s = p.read_text()
+          s = s.replace(
+              "initWithType:2",
+              "initWithType:(UIScreenEdgePanRecognizerType)2"
+          )
+          p.write_text(s)
+
+          # 3) MoveControlCenter.xm 顶部补私有方法声明
+          p = Path("MoveControlCenter.xm")
+          s = p.read_text()
+
+          block1 = """@interface _UIBackdropView : UIView
+          - (id)initWithPrivateStyle:(NSInteger)style;
+          - (void)setGroupName:(NSString *)name;
+          @end
+
+          @interface SBControlCenterController : NSObject
+          - (void)setInGrabberOnlyMode:(BOOL)arg1;
+          - (void)_beginPresentation;
+          - (BOOL)isFullyRevealed;
+          - (void)setTransitioning:(BOOL)arg1;
+          - (CGFloat)_yValueForOpen;
+          - (void)_revealSlidingViewToHeight:(CGFloat)arg1;
+          - (void)_finishPresenting:(BOOL)arg1 completion:(id)arg2;
+          - (void)hideGrabberAnimated:(BOOL)arg1;
+          - (BOOL)isPresented;
+          - (BOOL)isTransitioning;
+          @end
+
+          """
+
+          if "@interface SBControlCenterController : NSObject" not in s:
+              if "#import" in s:
+                  lines = s.splitlines(True)
+                  insert_at = 0
+                  for i, line in enumerate(lines):
+                      if line.startswith("#import"):
+                          insert_at = i + 1
+                  lines.insert(insert_at, "\n" + block1)
+                  s = "".join(lines)
+              else:
+                  s = block1 + s
+
+          p.write_text(s)
+          PY
+
+          echo "----- Makefile -----"
+          cat Makefile
+          echo "----- MultitaskingGesturesSettings/Makefile -----"
+          cat MultitaskingGesturesSettings/Makefile
+          echo "----- Headers/BackBoardServices.h -----"
+          cat Headers/BackBoardServices.h
+          echo "----- grep initWithType in OffscreenSwipeRecognizers.xm -----"
+          grep -n "initWithType" OffscreenSwipeRecognizers.xm || true
+          echo "----- grep SBControlCenterController in MoveControlCenter.xm -----"
+          grep -n "SBControlCenterController" MoveControlCenter.xm || true
           
       - name: build
         run: |
           export THEOS="$HOME/theos"
-          make clean package FINALPACKAGE=1
+          make clean package FINALPACKAGE=1 messages=yes
 
       - name: upload deb
         uses: actions/upload-artifact@v4
