@@ -31,7 +31,7 @@ jobs:
       - name: patch for ios7 arm
         run: |
           cat > Makefile <<'EOF'
-          TARGET = iphone:clang:7.0:7.0
+          TARGET = iphone:clang:latest:7.0
           ARCHS = armv7 armv7s
           GO_EASY_ON_ME = 1
 
@@ -52,7 +52,7 @@ jobs:
           EOF
 
           cat > MultitaskingGesturesSettings/Makefile <<'EOF'
-          TARGET = iphone:clang:7.0:7.0
+          TARGET = iphone:clang:latest:7.0
           ARCHS = armv7 armv7s
           GO_EASY_ON_ME = 1
 
